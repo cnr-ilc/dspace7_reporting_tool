@@ -1,0 +1,86 @@
+project:
+  name: "dspace-analytics"
+  environment: "dev"
+  timezone: "Europe/Rome"
+
+run:
+  # mode: single keeps backward compatibility with reference_month.
+  # mode: monthly resolves all complete months from start to end.
+  mode: "monthly"
+  reference_month: "current"
+  # Optional: label used for always exports. Use "current" for the launch month.
+  # If omitted, reference_month is used.
+  always_reference_month: null
+  start: "2025"
+  end: null
+  create_month_subfolders: true
+  export_outputs: true
+  overwrite_exports: false
+  overwrite_reports: false
+  include_snapshot_metrics: true
+  future_start_policy: "current_year"
+
+paths:
+  data_root: "data"
+  raw_root: "data/raw"
+  processed_root: "data/processed"
+  exports_root: "exports"
+  temp_root: "data/temp"
+  reports_root: "reports"
+
+ssh:
+  enabled: false
+  host: "example.org"
+  port: 22
+  username: "CHANGE_ME"
+  password: "CHANGE_ME"
+  remote_bind_host: "localhost"
+  remote_bind_port: 5432
+  local_bind_host: "127.0.0.1"
+  local_bind_port: 5432
+
+sources:
+  postgres:
+    enabled: true
+  solr:
+    enabled: true
+  matomo:
+    enabled: true
+
+postgres:
+  host: "localhost"
+  port: 5432
+  database: "dspace"
+  user: "dspace"
+  password: "CHANGE_ME"
+  schema: "public"
+
+solr:
+  base_url: "http://localhost:8983/solr"
+  statistics_core: "statistics"
+  search_core: "search"
+
+matomo:
+  base_url: "https://matomo.example.org/"
+  site_id: 1
+  token_auth: "CHANGE_ME"
+  token_description: "jupyter-notebook-analytics"
+  domain_filter: "dspace-clarin-it.ilc.cnr.it"
+  verify_ssl: true
+
+naming:
+  raw_db_filename: "db_snapshot.csv"
+  raw_solr_filename: "solr_statistics.csv"
+  raw_matomo_filename: "matomo_visits.csv"
+  processed_db_filename: "db_metrics.parquet"
+  processed_solr_filename: "solr_metrics.parquet"
+  processed_matomo_filename: "matomo_metrics.parquet"
+  integrated_filename: "integrated_metrics.parquet"
+
+reporting:
+  enabled: true
+  institution_name: "Example Research Centre"
+  institution_subtitle: "DSpace monthly institutional report"
+  archive_title: "Monthly reports archive"
+  logo_path: "assets/branding/logo.png"
+  include_figures: true
