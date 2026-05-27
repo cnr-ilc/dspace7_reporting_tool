@@ -174,7 +174,22 @@ def build_monthly_detail(
                 else None,
             }
         )
-    workflow_timeline = pd.DataFrame(workflow_rows)
+    workflow_timeline_columns = [
+        "item_id",
+        "submitted_at",
+        "first_approval_at",
+        "second_approval_at",
+        "final_approval_at",
+        "made_available_at",
+        "approval_steps_count",
+        "submitted_to_first_approval_hours",
+        "first_to_final_approval_hours",
+        "submitted_to_available_hours",
+    ]
+    workflow_timeline = pd.DataFrame(
+        workflow_rows,
+        columns=workflow_timeline_columns,
+    )
 
     return {
         "uploads_by_collection": load_metric_csv(

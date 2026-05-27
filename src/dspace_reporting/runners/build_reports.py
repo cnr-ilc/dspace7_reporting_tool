@@ -10,6 +10,8 @@ import os
 from pathlib import Path
 import shutil
 
+import pandas as pd
+
 from dspace_reporting.config import get_run_months, load_config
 from dspace_reporting.reporting.branding import resolve_logo_path
 from dspace_reporting.reporting.charts import (
@@ -858,6 +860,13 @@ def safe_sum(df, column: str) -> int:
     if column not in df.columns:
         return 0
     return int(df[column].sum())
+
+
+def positive_rows(df, column: str):
+    if column not in df.columns:
+        return df.iloc[0:0].copy()
+    values = pd.to_numeric(df[column], errors="coerce").fillna(0)
+    return df[values > 0]
 
 
 def normalize_handle(handle: object) -> str | None:
@@ -1966,10 +1975,18 @@ def main() -> int:
             "workflow_approval_timeline",
         ]:
             enriched_detail[key] = add_item_resource_column(enriched_detail[key], item_lookup)
-        uploaded_item_ids = set(enriched_detail["uploaded_items_details"]["item_id"].astype(str))
-        enriched_detail["workflow_approval_timeline"] = enriched_detail[
-            "workflow_approval_timeline"
-        ][enriched_detail["workflow_approval_timeline"]["item_id"].astype(str).isin(uploaded_item_ids)]
+        uploaded_items_details = enriched_detail["uploaded_items_details"]
+        workflow_approval_timeline = enriched_detail["workflow_approval_timeline"]
+        if (
+            "item_id" in uploaded_items_details.columns
+            and "item_id" in workflow_approval_timeline.columns
+        ):
+            uploaded_item_ids = set(uploaded_items_details["item_id"].astype(str))
+            enriched_detail["workflow_approval_timeline"] = workflow_approval_timeline[
+                workflow_approval_timeline["item_id"].astype(str).isin(uploaded_item_ids)
+            ]
+        else:
+            enriched_detail["workflow_approval_timeline"] = workflow_approval_timeline.iloc[0:0].copy()
         save_monthly_overview_chart(
             history_until_reference_month,
             figures_dir / "monthly_overview.png",
@@ -2036,9 +2053,7 @@ def main() -> int:
         save_page_typology_chart(
             detail["page_typology"], figures_dir / "page_typology.png"
         )
-        nonzero_device_types = detail["visits_by_device_type"][
-            detail["visits_by_device_type"]["visits_count"] > 0
-        ]
+        nonzero_device_types = positive_rows(detail["visits_by_device_type"], "visits_count")
         save_horizontal_bar_chart(
             nonzero_device_types,
             label_column="device_type",

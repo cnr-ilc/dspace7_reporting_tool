@@ -1,5 +1,8 @@
 from pathlib import Path
 
+import pandas as pd
+
+import dspace_reporting.reporting.datasets as datasets_module
 from dspace_reporting.reporting.paths import (
     get_always_report_dir,
     get_month_figures_dir,
@@ -7,6 +10,7 @@ from dspace_reporting.reporting.paths import (
     get_reports_root,
 )
 from dspace_reporting.reporting.datasets import (
+    build_monthly_detail,
     build_item_publication_snapshot_for_month,
     build_historical_repository_usage_snapshot_for_month,
     build_access_referrer_snapshot_for_month,
@@ -97,6 +101,33 @@ def test_monthly_overview_requires_all_input_exports(tmp_path):
 
     assert has_complete_monthly_overview_exports(tmp_path, config, "2025-10")
     assert missing_monthly_overview_exports(tmp_path, config, "2025-10") == []
+
+
+def test_monthly_detail_keeps_empty_workflow_timeline_schema(monkeypatch, tmp_path):
+    config = {"paths": {"exports_root": "exports"}, "run": {"create_month_subfolders": True}}
+
+    def fake_load_metric_csv(project_root, config, source, scope, reference_month, filename):
+        if filename == "db_items_modified_in_month_from_provenance.csv":
+            return pd.DataFrame(columns=["item_id", "event_type", "event_line"])
+        return pd.DataFrame()
+
+    monkeypatch.setattr(datasets_module, "load_metric_csv", fake_load_metric_csv)
+
+    detail = build_monthly_detail(tmp_path, config, "2025-07")
+
+    assert detail["workflow_approval_timeline"].empty
+    assert list(detail["workflow_approval_timeline"].columns) == [
+        "item_id",
+        "submitted_at",
+        "first_approval_at",
+        "second_approval_at",
+        "final_approval_at",
+        "made_available_at",
+        "approval_steps_count",
+        "submitted_to_first_approval_hours",
+        "first_to_final_approval_hours",
+        "submitted_to_available_hours",
+    ]
 
 
 def test_repository_snapshot_as_of_month_uses_deposit_date_for_item_counts(tmp_path):
